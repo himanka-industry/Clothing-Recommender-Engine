@@ -1,0 +1,36 @@
+def prod_recom(features, feature_list, json_features, attribute, uploaded_img_id):
+    nbrs = NearestNeighbors(n_neighbors=10, algorithm='brute', metric='euclidean')
+    nbrs.fit(feature_list)
+    distances, indices = nbrs.kneighbors([features])
+    
+    uploaded_img_id = int(uploaded_img_id)  # Ensure this matches the 'id' format in json_features
+    
+    # Check if the uploaded image's ID exists in json_features and the attribute exists
+    if uploaded_img_id in json_features['id'].values and attribute in json_features.columns:
+        uploaded_img_attr_value = json_features.loc[json_features['id'] == uploaded_img_id, attribute].values
+        if len(uploaded_img_attr_value) > 0:
+            uploaded_img_attr_value = uploaded_img_attr_value[0]
+        else:
+            st.error("Attribute value for the uploaded image not found.")
+            return []
+    else:
+        st.error("Uploaded image ID or selected attribute not found in JSON features.")
+        return []
+
+    # Ensuring indices are within the bounds of json_features
+    valid_indices = [i for i in indices[0] if i < len(json_features)]
+    
+    # Re-ranking logic based on the attribute
+    if attribute in ['price', 'discountedPrice', 'year']:
+        # Calculate the absolute difference in attribute value for valid indices only
+        attr_diff = json_features.iloc[valid_indices][attribute].apply(lambda x: abs(x - uploaded_img_attr_value))
+        sorted_indices = attr_diff.sort_values().index.to_list()
+    else:
+        # For categorical attributes, prioritize exact matches for valid indices only
+        exact_matches = json_features.iloc[valid_indices][attribute] == uploaded_img_attr_value
+        sorted_indices = exact_matches.sort_values(ascending=False).index.to_list()
+
+    # Convert sorted indices back to original indices in feature_list
+    adjusted_indices = [feature_list.index[i] for i in sorted_indices]
+
+    return adjusted_indices[:10]  # Limit to top 10 recommendations
