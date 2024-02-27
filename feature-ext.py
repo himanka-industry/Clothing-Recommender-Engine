@@ -1,7 +1,6 @@
 
 ### Importing required libraries####
 from PIL import Image
-
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -15,13 +14,16 @@ import pickle
 import os
 
 
-############################ Defining Model##############################################
+################################### Defining the Model##########################################
 model=ResNet50(weights='imagenet',include_top=False, input_shape=(224,224,3))
 model.trainable=False
 model=tf.keras.Sequential([model,GlobalMaxPool2D()])
 model.summary()
 
-############### One time Code: need to extract features of 44k images, U can run this  ######
+################################################################################################
+################### Execute once for extracting training image features ########################
+################################################################################################
+
 def image_preprocess(path,model):
     img=image.load_img(path, target_size=(224,224))
     img_arr=image.img_to_array(img)
@@ -43,4 +45,6 @@ feature_list=[]
 for file in tqdm(images):
     feature_list.append(image_preprocess(file, model))
 pickle.dump(feature_list,open('features.pkl','wb'))
+
+print(f"\n Feature extraction complete!")
 #####################end #########################################################
